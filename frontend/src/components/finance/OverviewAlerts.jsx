@@ -1,0 +1,3 @@
+import { Link } from 'react-router-dom';
+import { ShieldAlert,ArrowUpRight } from 'lucide-react';
+export const OverviewAlerts=({alerts})=>alerts?.count?<div className="overview-alert-strip" data-testid="overview-alert-strip"><ShieldAlert size={15}/><span><strong>{alerts.count} ponto{alerts.count>1?'s':''} de atenção</strong> · {alerts.alerts[0].title}</span><Link to="/alertas" data-testid="overview-open-alerts">Ver alertas <ArrowUpRight size={13}/></Link></div>:null;

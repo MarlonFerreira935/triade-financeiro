@@ -1,0 +1,17 @@
+{
+  "date": "2026-10-06",
+  "status": "passed",
+  "scope": "Consultor financeiro conversacional, alertas e regressão do financeiro",
+  "tests_passed": 16,
+  "tests_failed": 0,
+  "test_log": "/app/test_reports/final_pytest.log",
+  "junit": "/app/test_reports/pytest/final_results.xml",
+  "resolved_issues": [
+    "Guardrail determinístico impede inferência de saúde financeira para período sem dados.",
+    "Teste de preservação de Excel ajustado à contagem real de 14 abas originais.",
+    "Responsividade dos lançamentos e DRE comparativa validada em 390px."
+  ],
+  "real_integrations": ["Gemini streaming chat and diagnostics", "Gemini receipt image extraction", "Managed object storage"],
+  "pending": ["WhatsApp Business official activation", "Workspace authentication"],
+  "mocked_apis": []
+}

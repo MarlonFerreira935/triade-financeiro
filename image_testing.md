@@ -1,0 +1,2 @@
+# Image integration testing
+Use base64-encoded images for AI test requests. Accepted image formats: JPEG, PNG, WEBP. Images must contain real visual features, not blank or solid-color content. Redetect MIME after transformations, extract the first frame of animations, and resize oversized images. Test receipt extraction against visible values and verify saved file download and confirmation before posting to the ledger.

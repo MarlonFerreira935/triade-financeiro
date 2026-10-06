@@ -1,0 +1,204 @@
+{
+  "project_name": "Tríade POA - Sistema Financeiro Inteligente & WhatsApp Business Concierge",
+  "theme_strategy": {
+    "default_theme": "dark",
+    "supported_themes": ["dark", "light"],
+    "archetype": "Archetype 5: Luxury & Executive Precision (Deep Obsidian, Warm Sandstone, Imperial Gold, Brazilian Emerald)",
+    "description": "Executive high-trust corporate finance workspace for Tríade Porto Alegre. Marries Swiss brutalist discipline with warm architectural bronze and Brazilian executive dignity. Avoids generic blue fintech clichés, sterile grey wireframes, and eye-burning neon gradients."
+  },
+  "brand_assets": {
+    "logo_url": "https://customer-assets-jai6qajn.emergentagent.net/job_776664fa-ffa5-494e-8470-539468fb753c/artifacts/ee35q5bt_Capa_Logo_Triade_POA.png",
+    "source_spreadsheet_url": "https://customer-assets-jai6qajn.emergentagent.net/job_776664fa-ffa5-494e-8470-539468fb753c/artifacts/nfh1sa3i_TRIADE_ERP_FINANCEIRO%20FINAL%20PADRA%CC%83O%20%282%29.xlsx",
+    "entity_name": "Tríade Porto Alegre",
+    "locale": "pt-BR",
+    "currency": "BRL (R$)",
+    "currency_format": "Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' })"
+  },
+  "color_palette": {
+    "dark": {
+      "background": "#0B0C0E",
+      "surface_base": "#121418",
+      "surface_card": "#181B22",
+      "surface_card_hover": "#1F232D",
+      "border_subtle": "rgba(255, 255, 255, 0.08)",
+      "border_highlight": "rgba(217, 163, 62, 0.35)",
+      "foreground_primary": "#F4F5F7",
+      "foreground_muted": "#8E95A5",
+      "foreground_subtle": "#5F6575",
+      "accent_gold": "#D9A33E",
+      "accent_gold_glow": "rgba(217, 163, 62, 0.15)",
+      "status_profit_emerald": "#10B981",
+      "status_profit_bg": "rgba(16, 185, 129, 0.12)",
+      "status_expense_crimson": "#F43F5E",
+      "status_expense_bg": "rgba(244, 63, 94, 0.12)",
+      "status_warning_amber": "#F59E0B",
+      "status_warning_bg": "rgba(245, 158, 11, 0.12)",
+      "status_whatsapp_teal": "#25D366",
+      "status_whatsapp_bg": "rgba(37, 211, 102, 0.12)"
+    },
+    "light": {
+      "background": "#F6F7F9",
+      "surface_base": "#FFFFFF",
+      "surface_card": "#FFFFFF",
+      "surface_card_hover": "#F0F2F6",
+      "border_subtle": "rgba(0, 0, 0, 0.08)",
+      "border_highlight": "rgba(180, 130, 40, 0.4)",
+      "foreground_primary": "#0F172A",
+      "foreground_muted": "#475569",
+      "foreground_subtle": "#94A3B8",
+      "accent_gold": "#B48228",
+      "accent_gold_glow": "rgba(180, 130, 40, 0.12)",
+      "status_profit_emerald": "#059669",
+      "status_profit_bg": "rgba(5, 150, 105, 0.1)",
+      "status_expense_crimson": "#E11D48",
+      "status_expense_bg": "rgba(225, 29, 72, 0.1)",
+      "status_warning_amber": "#D97706",
+      "status_warning_bg": "rgba(217, 119, 6, 0.1)",
+      "status_whatsapp_teal": "#128C7E",
+      "status_whatsapp_bg": "rgba(18, 140, 126, 0.1)"
+    }
+  },
+  "typography": {
+    "font_family_headings": "Cabinet Grotesk, Syne, Inter, -apple-system, sans-serif",
+    "font_family_body": "Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
+    "font_family_numbers_mono": "'JetBrains Mono', 'IBM Plex Mono', monospace",
+    "scale": {
+      "h1": "text-3xl sm:text-4xl font-extrabold tracking-tight",
+      "h2": "text-xl sm:text-2xl font-bold tracking-tight",
+      "h3": "text-lg font-semibold tracking-normal",
+      "h4": "text-base font-semibold",
+      "body": "text-sm text-foreground-muted leading-relaxed",
+      "body_dense": "text-xs text-foreground-muted",
+      "eyebrow": "text-[11px] uppercase tracking-[0.2em] font-semibold text-accent_gold",
+      "metric_hero": "text-3xl lg:text-4xl font-extrabold font-mono tracking-tight",
+      "metric_card": "text-2xl font-bold font-mono tracking-tight",
+      "metric_sub": "text-xs font-mono text-foreground-muted"
+    },
+    "rules": [
+      "Never use pure Inter regular for main titles; give them weight, letter tracking, or uppercase hierarchy",
+      "All numeric financial tables and currency displays MUST use monospace font family for column alignment",
+      "Use explicit contrast on badges: dark badges with colored text and subtle 1px border"
+    ]
+  },
+  "layout_and_grids": {
+    "structure": "Responsive Executive Dashboard (Sidebar + Sticky Header + Multi-tab Financial Workspace)",
+    "sidebar": {
+      "width": "w-72",
+      "position": "fixed left-0 top-0 bottom-0 z-40 hidden lg:flex flex-col border-r border-border/40 bg-surface_base/95 backdrop-blur-xl",
+      "header": "Tríade Porto Alegre logo lockup + active company badge",
+      "nav_items": [
+        { "id": "overview", "label": "Visão Geral & KPIs", "icon": "LayoutDashboard" },
+        { "id": "dre", "label": "DRE Gerencial Completa", "icon": "FileSpreadsheet" },
+        { "id": "transactions", "label": "Lançamentos Financeiros", "icon": "Receipt" },
+        { "id": "receipts", "label": "Comprovantes & OCR IA", "icon": "ScanLine" },
+        { "id": "diagnostics", "label": "Diagnóstico & Break-even", "icon": "Activity" },
+        { "id": "whatsapp", "label": "WhatsApp Concierge Bot", "icon": "MessageSquareShare" },
+        { "id": "import_export", "label": "Planilha ERP (XLSX)", "icon": "UploadCloud" }
+      ],
+      "footer": "WhatsApp Gateway status monitor (Explicitly unconfigured/disconnected state by default), current user & Porto Alegre business hours"
+    },
+    "header": {
+      "height": "h-16",
+      "style": "sticky top-0 z-30 px-6 flex items-center justify-between border-b border-border/40 bg-background/80 backdrop-blur-xl",
+      "controls": "Period selector (Mês/Ano), Quick New Launch CTA, Theme Toggle, Spreadsheet Sync Status indicator"
+    },
+    "bento_grid_rules": {
+      "mode": "MODE B: High Density Financial Grid",
+      "rules": [
+        "Containers with borders must use internal padding p-5 or p-6",
+        "KPI metric cards on top (4 columns on lg:grid-cols-4)",
+        "DRE Gerencial uses collapsible tree rows (Receita Bruta -> Deduções -> Receita Líquida -> Custos -> Margem de Contribuição -> Despesas Fixas -> EBITDA/LAIR -> Lucro Líquido)",
+        "Direct children in grids for framer-motion compatibility"
+      ]
+    }
+  },
+  "component_specifications": {
+    "dre_gerencial_view": {
+      "path": "/app/frontend/src/components/financial/DreGerencialView.js",
+      "features": [
+        "Faithful hierarchy from TRIADE_ERP_FINANCEIRO sheet 'DRE Gerencial'",
+        "Columns: Conta Contábil, Jan-Dez + Acumulado Anual + % Vertical",
+        "Visual subtotal rows with gold or emerald accent highlights",
+        "Toggle between Monthly breakdown and Quarterly view",
+        "Inline quick audit indicator showing formula provenance"
+      ]
+    },
+    "receipts_vault_view": {
+      "path": "/app/frontend/src/components/receipts/ReceiptsVaultView.js",
+      "features": [
+        "Filter comprovantes by Month (Jan a Dez), Year, and Plano de Contas Category",
+        "OCR Extraction simulation + actual upload: reads Valor, Data, Favorecido, CNPJ, Categoria sugerida",
+        "Status badge: 'Lançado no DRE', 'Pendente de Conferência', 'Em Análise'",
+        "Thumbnail & receipt lightbox preview modal with download & link to ledger",
+        "Dropzone for receipt images/PDFs with visual drag-and-drop feedback"
+      ]
+    },
+    "whatsapp_gateway_hub": {
+      "path": "/app/frontend/src/components/whatsapp/WhatsAppGatewayHub.js",
+      "features": [
+        "Honest status: Disconnected / Aguardando Configuração de Webhook da Meta Business Cloud API",
+        "DO NOT fake connected state. Show clear step-by-step setup guide with Phone Number ID, WABA ID, Permanent Token",
+        "Live Interactive Sandbox: Test sending expense message e.g. 'Almoço cliente R$ 145,90 com cartão' or uploading a photo receipt",
+        "Bot response preview showing automatic categorization into Plano de Contas & spreadsheet row insertion",
+        "Activity feed of incoming WhatsApp events"
+      ]
+    },
+    "financial_diagnostics_view": {
+      "path": "/app/frontend/src/components/diagnostics/FinancialDiagnosticsView.js",
+      "features": [
+        "Health Score 0-100 calculated from Ponto de Equilíbrio, Margem Líquida, and Runway",
+        "Break-even chart (Custos Fixos vs Margem de Contribuição vs Ponto de Equilíbrio)",
+        "Executive AI Diagnostic Insights: alerts on expense spikes, recommendation for cash reserves, operating leverage analysis",
+        "Simulador de Cenários (impact of +10% revenue vs -15% fixed expenses)"
+      ]
+    },
+    "spreadsheet_sync_modal": {
+      "path": "/app/frontend/src/components/spreadsheet/SpreadsheetSyncModal.js",
+      "features": [
+        "Export live data to standard Excel matching the Tríade POA structure",
+        "Import new .xlsx or .csv to overwrite or merge transactions",
+        "Direct download link to original template: TRIADE_ERP_FINANCEIRO FINAL PADRÃO (2).xlsx"
+      ]
+    }
+  },
+  "image_urls": {
+    "receipt_sample_1": {
+      "url": "https://images.unsplash.com/photo-1554224155-cfa08c2a758f?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwyfHxmaW5hbmNpYWwlMjBkb2N1bWVudCUyMGludm9pY2UlMjByZWNlaXB0fGVufDB8fHx8MTc5MTE1ODk0NXww&ixlib=rb-4.1.0&q=85",
+      "description": "Tax invoice and formal fiscal declaration document with coffee mug on desk",
+      "category": "receipts_vault_preview"
+    },
+    "receipt_sample_2": {
+      "url": "https://images.unsplash.com/photo-1731686602391-7484df33a03c?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwzfHxmaW5hbmNpYWwlMjBkb2N1bWVudCUyMGludm9pY2UlMjByZWNlaXB0fGVufDB8fHx8MTc5MTE1ODk0NXww&ixlib=rb-4.1.0&q=85",
+      "description": "Commercial physical payment receipt ticket on wood surface",
+      "category": "receipts_vault_preview"
+    },
+    "receipt_sample_3": {
+      "url": "https://images.unsplash.com/photo-1554224154-22dec7ec8818?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA2MjJ8MHwxfHNlYXJjaHwxfHxmaW5hbmNpYWwlMjBkb2N1bWVudCUyMGludm9pY2UlMjByZWNlaXB0fGVufDB8fHx8MTc5MTE1ODk0NXww&ixlib=rb-4.1.0&q=85",
+      "description": "Financial accounting spreadsheet documentation with pen",
+      "category": "receipts_vault_preview"
+    },
+    "whatsapp_user_context": {
+      "url": "https://images.unsplash.com/photo-1790597035822-89a1607c635a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1NTN8MHwxfHNlYXJjaHwxfHxzbWFydHBob25lJTIwbWVzc2FnZSUyMHNjcmVlbiUyMGRlc2t8ZW58MHx8fHwxNzkxMTU4OTUzfDA&ixlib=rb-4.1.0&q=85",
+      "description": "Executive sending WhatsApp receipts and expense photo from smartphone",
+      "category": "whatsapp_concierge_illustration"
+    },
+    "porto_alegre_location": {
+      "url": "https://images.unsplash.com/photo-1766849399174-265f883fbe3a?crop=entropy&cs=srgb&fm=jpg&ixid=M3w4NjA1ODR8MHwxfHNlYXJjaHwxfHxtb2Rlcm4lMjBhcmNoaXRlY3R1cmUlMjBwb3J0byUyMGFsZWdyZSUyMGJ1aWxkaW5nfGVufDB8fHx8MTc5MTE1ODk1N3ww&ixlib=rb-4.1.0&q=85",
+      "description": "Modern architecture sunlight interior in Porto Alegre Rio Grande do Sul",
+      "category": "headquarters_atmosphere"
+    }
+  },
+  "micro_interactions": {
+    "card_hover": "hover:border-accent_gold/40 hover:-translate-y-0.5 transition duration-200",
+    "button_primary": "bg-[#D9A33E] hover:bg-[#C28F2F] text-black font-semibold shadow-lg shadow-[#D9A33E]/20 transition-all active:scale-[0.98]",
+    "button_secondary": "bg-surface_card hover:bg-surface_card_hover text-foreground border border-border/50 transition-all",
+    "toast_feedback": "Use sonner for success toasts: 'Lançamento registrado na DRE', 'Comprovante indexado com sucesso', 'Sincronização concluída'",
+    "tab_active": "border-b-2 border-accent_gold text-accent_gold font-medium"
+  },
+  "general_ui_ux_guidelines": {
+    "accessibility_test_ids": "All interactive elements, buttons, inputs, tabs, filter selects, and data rows MUST have data-testid attributes (e.g. data-testid='dre-table-row', data-testid='upload-receipt-btn', data-testid='whatsapp-test-send-btn')",
+    "transparency_ban": "No transparent dropdown backgrounds or invisible floating navbars. Always use backdrop-blur with minimum 85% opacity or solid surface background to guarantee contrast",
+    "language": "100% Brazilian Portuguese (pt-BR). Use correct Brazilian financial terms: DRE Gerencial, Margem de Contribuição, Ponto de Equilíbrio, Pró-Labore, Despesas Operacionais, EBITDA, Comprovantes Fiscais, Plano de Contas",
+    "whatsapp_integrity": "Credentials are not provided by default, so DO NOT simulate an already connected verified WhatsApp Business token. Explicitly show 'Status: Desconectado / Modo de Demonstração & Configuração de Webhook' with a fully functional simulator that displays how the webhook processes text and receipt images into the spreadsheet"
+  }
+}
