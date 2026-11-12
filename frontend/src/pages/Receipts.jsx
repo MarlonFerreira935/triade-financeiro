@@ -1,16 +1,46 @@
-import { useEffect,useState,useRef } from 'react';
-import { UploadCloud,FileImage,FileText,ArrowUpRight,FolderOpen,Download,Trash2,Loader2,CheckCircle2,Clock3,ListFilter } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { Dialog,DialogContent,DialogTitle,DialogDescription } from '../components/ui/dialog';
-import { api,API,money,dateLabel,errorText,downloadFile } from '../lib/api';
-import { Empty,Loading } from '../components/finance/Shared';
+import { useMemo, useState } from 'react';
+import { ListFilter } from 'lucide-react';
 import { toast } from 'sonner';
-export default function Receipts({month,version,onReview,onChanged}){
- const [items,setItems]=useState(null),[busy,setBusy]=useState(false),[category,setCategory]=useState('todas'),[all,setAll]=useState(false),[preview,setPreview]=useState(null),[remove,setRemove]=useState(null),[drag,setDrag]=useState(false);const input=useRef();
- useEffect(()=>{api.get('/receipts',{params:{month:all?'':month}}).then(r=>setItems(r.data)).catch(e=>{toast.error(errorText(e));setItems([])});},[month,version,all]);
- const upload=async file=>{if(!file)return;setBusy(true);try{const form=new FormData();form.append('file',file);form.append('month',month);const {data}=await api.post('/receipts',form);onChanged();if(data.warning)toast.info(data.warning);else toast.success('Comprovante salvo e identificado. Confira os dados.');onReview({...data.extraction,receipt_id:data.id});}catch(e){toast.error(errorText(e))}finally{setBusy(false);if(input.current)input.current.value=''}};
- const deleteReceipt=async()=>{try{await api.delete(`/receipts/${remove.id}`);toast.success('Comprovante excluído.');setRemove(null);onChanged();}catch(e){toast.error(errorText(e))}};
- const filtered=(items||[]).filter(i=>category==='todas'||i.category===category);
- const groups=filtered.reduce((g,r)=>{const key=r.date.slice(0,7)+' · '+r.category;(g[key]??=[]).push(r);return g},{});
- return <><input type="file" accept="image/jpeg,image/png,image/webp,application/pdf" ref={input} onChange={e=>upload(e.target.files[0])} hidden data-testid="receipt-file-input"/><button className={`upload-zone ${drag?'dragging':''}`} data-testid="receipt-dropzone" disabled={busy} onClick={()=>input.current.click()} onDragOver={e=>{e.preventDefault();setDrag(true)}} onDragLeave={()=>setDrag(false)} onDrop={e=>{e.preventDefault();setDrag(false);if(!busy)upload(e.dataTransfer.files[0])}}><span className="upload-icon">{busy?<Loader2 className="spin" size={26}/>:<UploadCloud size={26}/>}</span><strong>{busy?'Salvando e lendo seu comprovante...':'Um comprovante a menos na sua mesa.'}</strong><span>{busy?'A identificação pode levar alguns instantes.':'Arraste o arquivo ou selecione uma foto do comprovante'}</span><small>JPG, PNG, WEBP ou PDF · até 10 MB</small><span className="upload-cta">{busy?'Identificando com IA':'Adicionar comprovante'} {!busy&&<ArrowUpRight size={15}/>}</span></button><div className="filter-bar"><div className="segmented"><button onClick={()=>setAll(false)} className={!all?'active':''} data-testid="receipts-current-month">Neste mês</button><button onClick={()=>setAll(true)} className={all?'active':''} data-testid="receipts-all-months">Todos os meses</button></div><label className="filter-select"><ListFilter size={15}/><select value={category} onChange={e=>setCategory(e.target.value)} aria-label="Filtrar comprovantes" data-testid="receipts-category-filter"><option value="todas">Todas as categorias</option>{[...new Set((items||[]).map(i=>i.category))].map(c=><option key={c}>{c}</option>)}</select></label></div>{!items?<Loading/>:!filtered.length?<Empty title="Seu arquivo começa aqui" text="Nenhum comprovante encontrado neste período."/>:Object.entries(groups).map(([group,receipts])=><section className="receipt-group" key={group}><h2 data-testid={`receipt-group-${group}`}><FolderOpen size={17}/>{group}<span>{receipts.length}</span></h2><div className="receipt-grid">{receipts.map(r=><article className="receipt-card" key={r.id} data-testid={`receipt-card-${r.id}`}><button className="receipt-preview" onClick={()=>setPreview(r)} data-testid={`preview-receipt-${r.id}`}>{r.content_type.startsWith('image')?<img src={`${API}/receipts/${r.id}/file`} alt={r.filename}/>:<FileText size={48}/>}<span>Visualizar <ArrowUpRight size={14}/></span></button><div className="receipt-details"><div className={`receipt-state ${r.status==='lancado'?'green':'gold'}`} data-testid={`receipt-status-${r.id}`}>{r.status==='lancado'?<CheckCircle2 size={13}/>:<Clock3 size={13}/>} {r.status==='lancado'?'Lançado na DRE':'Aguardando conferência'}</div><h3 title={r.filename} data-testid={`receipt-filename-${r.id}`}>{r.filename}</h3><div className="receipt-values"><span>{dateLabel(r.date)}</span><strong>{r.amount?money(r.amount):'Valor a conferir'}</strong></div><div className="receipt-actions">{r.status!=='lancado'&&<Button variant="outline" data-testid={`review-receipt-${r.id}`} onClick={()=>onReview({...r.extraction,receipt_id:r.id})}>Conferir dados</Button>}<Button size="icon" variant="ghost" title="Baixar comprovante" data-testid={`download-receipt-${r.id}`} onClick={()=>downloadFile(`/receipts/${r.id}/file`,r.filename).catch(e=>toast.error(errorText(e)))}><Download size={15}/></Button>{r.status!=='lancado'&&<Button size="icon" variant="ghost" title="Excluir comprovante" data-testid={`delete-receipt-${r.id}`} onClick={()=>setRemove(r)}><Trash2 size={15}/></Button>}</div></div></article>)}</div></section>)}<Dialog open={!!preview} onOpenChange={v=>!v&&setPreview(null)}><DialogContent className="finance-modal receipt-viewer" data-testid="receipt-preview-modal"><DialogTitle>{preview?.filename}</DialogTitle><DialogDescription>Comprovante original arquivado</DialogDescription>{preview?.content_type.startsWith('image')?<img src={`${API}/receipts/${preview?.id}/file`} alt="Comprovante original"/>:<iframe src={`${API}/receipts/${preview?.id}/file`} title="Comprovante PDF"/>}<Button variant="outline" data-testid="preview-download" onClick={()=>downloadFile(`/receipts/${preview.id}/file`,preview.filename).catch(e=>toast.error(errorText(e)))}><Download size={15}/>Baixar original</Button></DialogContent></Dialog><Dialog open={!!remove} onOpenChange={v=>!v&&setRemove(null)}><DialogContent className="finance-modal" data-testid="delete-receipt-modal"><DialogTitle>Excluir comprovante?</DialogTitle><DialogDescription>Este documento será removido do arquivo de comprovantes.</DialogDescription><Button variant="destructive" data-testid="delete-receipt-confirm" onClick={deleteReceipt}>Excluir comprovante</Button></DialogContent></Dialog></>
+import { api, errorText } from '../lib/api';
+import { useApiResource } from '../hooks/useApiResource';
+import { useReceiptUpload } from '../hooks/useReceiptUpload';
+import { Empty, Loading } from '../components/finance/Shared';
+import { Button } from '../components/ui/button';
+import { ReceiptUpload } from '../components/finance/receipts/ReceiptUpload';
+import { ReceiptList } from '../components/finance/receipts/ReceiptList';
+import { ReceiptModals } from '../components/finance/receipts/ReceiptModals';
+
+const EMPTY_ITEMS = [];
+export default function Receipts({ month, version, onReview, onChanged }) {
+  const [category, setCategory] = useState('todas');
+  const [all, setAll] = useState(false);
+  const [preview, setPreview] = useState(null);
+  const [remove, setRemove] = useState(null);
+  const [deleting, setDeleting] = useState(false);
+  const resource = useApiResource('/receipts', { month: all ? '' : month }, version);
+  const items = resource.data || EMPTY_ITEMS;
+  const upload = useReceiptUpload(month, onChanged, onReview);
+  const categories = useMemo(() => [...new Set(items.map(item => item.category))], [items]);
+  const groups = useMemo(() => items.filter(item => category === 'todas' || item.category === category).reduce((result, receipt) => {
+    const group = `${receipt.date.slice(0, 7)} · ${receipt.category}`;
+    (result[group] ??= []).push(receipt);
+    return result;
+  }, {}), [items, category]);
+  const deleteReceipt = async () => {
+    if (!remove || deleting) return;
+    setDeleting(true);
+    try { await api.delete(`/receipts/${remove.id}`); toast.success('Comprovante excluído.'); setRemove(null); onChanged(); }
+    catch (error) { toast.error(errorText(error)); }
+    finally { setDeleting(false); }
+  };
+  let content = <ReceiptList groups={groups} onReview={onReview} onPreview={setPreview} onRemove={setRemove}/>;
+  if (resource.loading && !resource.data) content = <Loading/>;
+  else if (resource.error) content = <Empty title="Não foi possível carregar comprovantes" text={errorText(resource.error)}><Button onClick={resource.reload} data-testid="receipts-retry">Tentar novamente</Button></Empty>;
+  else if (!Object.keys(groups).length) content = <Empty title="Seu arquivo começa aqui" text="Nenhum comprovante encontrado neste período."/>;
+  return <>
+    <ReceiptUpload {...upload}/>
+    <div className="filter-bar"><div className="segmented"><button onClick={() => setAll(false)} className={!all ? 'active' : ''} data-testid="receipts-current-month">Neste mês</button><button onClick={() => setAll(true)} className={all ? 'active' : ''} data-testid="receipts-all-months">Todos os meses</button></div><label className="filter-select"><ListFilter size={15}/><select value={category} onChange={event => setCategory(event.target.value)} aria-label="Filtrar comprovantes" data-testid="receipts-category-filter"><option value="todas">Todas as categorias</option>{categories.map(item => <option key={item}>{item}</option>)}</select></label></div>
+    {content}
+    <ReceiptModals preview={preview} setPreview={setPreview} remove={remove} setRemove={setRemove} onDelete={deleteReceipt} deleting={deleting}/>
+  </>;
 }

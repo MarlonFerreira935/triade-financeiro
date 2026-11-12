@@ -1,0 +1,32 @@
+{
+  "summary": "Focused frontend retest: 12/12 regression checks PASS. Iteration_4 MEDIUM combined ?pergunta -> send -> SSEdone -> list503 -> retry defect is FIXED. Completed answer remains visible before, during and after recovery; active conversation GET loads both messages, composer stays empty, and only one POST occurs. Official hook/key ESLint passes with zero errors/warnings; production build succeeds. Screenshots at 1920x800 and 390x844 show no horizontal overflow. No implementation changes or real API writes.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {"ui_bugs": [], "integration_issues": [], "design_issues": []},
+  "test_report_links": [
+    "/app/test_reports/screenshots/automation_output/20261112_140751_71aadf0c6d8f/test_script.py",
+    "/app/test_reports/screenshots/automation_output/20261112_140822_8e8a65084745/test_script.py",
+    "/app/test_reports/screenshots/automation_output/20261112_140848_4fa9c0c29dbd/test_script.py",
+    "/app/test_reports/quality-hooks-iteration5.log",
+    "/app/test_reports/quality-build-iteration5.log"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "No new actionable defect found in the changed hook. reloadHistory separates recovery from initialization, keeps existing messages/input, prefers active conversationId, and protects updates with generation/abort/mounted checks. Tests confirmed request cancellation and stale-response rejection when creating a new conversation, selecting another conversation, and changing month.",
+    "Non-blocking existing warnings: build emits Node fs.F_OK deprecation; initial browser chart rendering emits Recharts negative-size warnings. Injected TEST ONLY503 errors and intentional aborted requests are expected, not real backend failures. No observed chart/layout defect in requested screenshots."
+  ],
+  "updated_files": [
+    "/app/test_reports/iteration_5.json",
+    "/app/test_reports/quality-hooks-iteration5.log",
+    "/app/test_reports/quality-build-iteration5.log",
+    "/app/test_reports/screenshots/automation_output/20261112_140751_71aadf0c6d8f/test_script.py",
+    "/app/test_reports/screenshots/automation_output/20261112_140822_8e8a65084745/test_script.py",
+    "/app/test_reports/screenshots/automation_output/20261112_140848_4fa9c0c29dbd/test_script.py"
+  ],
+  "success_rate": {"backend": "Not rerun: frontend-only scope; iteration_4 reported 32/32 PASS", "frontend": "100% (12/12 focused regression checks)"},
+  "test_credentials": "No login required or auth tested. Public preview URL matches frontend/.env.",
+  "seed_data_creation": "None. All advisor list/detail/chat responses and injected503/SSE failures were MOCKED TEST ONLY browser intercepts. Unexpected API writes were blocked. No real Gemini call, deletion, financial record creation, seed, reset, migration, or MongoDB write. Alerts were real read-only GETs except injected503; acknowledgment id/state pairs were unchanged before/after. Database hashes were not rerun, so no new hash-based integrity claim is made.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "PASS checks: (1) exact /consultor?pergunta=TEST_ONLY_draft query removal preserves draft, then SSEdone/list503/retry keeps complete answer, both server messages, empty composer and one POST; (2) NEW draft typed after postdone error survives retry with no replay of initialQuestion; (3) initial list503 without draft GET-retry opens latest conversation without POST; (4) initial list503 with incoming draft preserves it without detail fetch or POST; (5) failed-send retry sends original text and retry_message_id, one user bubble; (6) selected B503 retries B via GET only; (7) new conversation invalidates delayed history reload without losing its new draft; (8) month change rejects old delayed response; (9) alerts503 shows error/retry, restores real total/critical/unread counts and preserves acknowledgment state with zero writes; (10) selecting B after an earlier failed send and B503 retries B, not the old question; (11) completed answer remains visible with enabled empty composer WHILE recovery list is delayed, and typing during recovery works; (12) selecting B during delayed postdone reload keeps B's server pair and newly typed draft after old response releases. Backend and real delete/LLM workflows intentionally not repeated. Implementation files untouched; no unresolved flow in tested scope.",
+  "rca of the issue": "Iteration_4 reset came from historyRevision triggering initialization, clearing messages and restoring captured initialQuestion. Removing that dependency and routing retry through reloadHistory now avoids reinitialization. Exact combined reproduction passed; GET recovery targets the completed conversation regardless of captured incoming draft, and no second POST is sent. Abort/epoch guards prevented delayed history results from overwriting subsequent contexts."
+}

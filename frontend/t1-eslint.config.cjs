@@ -1,0 +1,3 @@
+const hooks = require('eslint-plugin-react-hooks');
+const react = require('eslint-plugin-react');
+module.exports = [{files: ['src/**/*.{js,jsx}'],languageOptions:{ecmaVersion:2022,sourceType:'module',parserOptions:{ecmaFeatures:{jsx:true}}},plugins:{'react-hooks':hooks,react},rules:{'react-hooks/rules-of-hooks':'error','react-hooks/exhaustive-deps':'error','react/no-array-index-key':'error','react/jsx-key':'error'}}];

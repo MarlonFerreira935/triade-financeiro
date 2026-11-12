@@ -1,0 +1,59 @@
+{
+  "summary": "Retested both safe quality suites: 32/32 pytest passed; official hook/key ESLint has 0 errors/warnings; production build succeeds. All three iteration_3 defects are fixed. Real Gemini UI completion followed by settled cancel/reopen/confirm deletion now passes, including one DELETE on double-click, hidden list/get, is_deleted=true and preserved messages. One additional combined incoming-question/history-retry regression was reproduced. Exact 1920x800 and 390x844 screenshots show no horizontal overflow.",
+  "backend_issues": {"critical": [], "minor": []},
+  "frontend_issues": {
+    "ui_bugs": [
+      {
+        "component": "Advisor incoming-question history recovery",
+        "issue": "Open /consultor?pergunta=TEST_ONLY..., send the preserved draft, complete SSE with done, fail the subsequent conversation-list GET with503, restore it and click advisor-retry. The completed answer disappears (0 messages/answer-source elements) and the already-sent initial draft returns to the composer. The conversation is present in history and no second POST occurs. The same post-done retry without an incoming question passes.",
+        "selector": "[data-testid=advisor-retry]",
+        "priority": "MEDIUM"
+      }
+    ],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_quality_refactor.py",
+    "/app/backend/tests/test_quality_public_api.py",
+    "/app/backend/tests/quality_iteration4_snapshot.py",
+    "/app/test_reports/pytest/quality-iteration4.xml",
+    "/app/test_reports/quality-iteration4.log",
+    "/app/test_reports/quality-hooks-iteration4.log",
+    "/app/test_reports/quality-build-iteration4.log",
+    "/app/test_reports/quality-db-iteration4.log",
+    "/app/test_reports/screenshots/automation_output/20261112_140042_10a9fbda668f/test_script.py",
+    "/app/test_reports/screenshots/automation_output/20261112_140131_2bbcf888f178/test_script.py",
+    "/app/test_reports/screenshots/automation_output/20261112_140156_9581882332c7/test_script.py",
+    "/app/test_reports/screenshots/automation_output/20261112_140229_599f2bc3719f/test_script.py",
+    "/app/test_reports/screenshots/automation_output/20261112_140333_8fd03c37f566/test_script.py",
+    "/app/test_reports/screenshots/automation_output/20261112_140431_d34b695836e8/test_script.py"
+  ],
+  "action_items": [
+    "MEDIUM: Separate conversation-history reload from initial month/draft initialization. Preserve the active conversation/messages and current composer value when retrying a list failure; do not reapply the initial URL draft or skip the active conversation GET merely because initialQuestion is nonempty.",
+    "Retest the combined ?pergunta -> done -> list503 -> retry path with TEST ONLY interception; verify the completed answer remains visible and no POST is resent.",
+    "Optional manual check: cancel/reopen before the dialog exit animation finishes. A forced click behind the closing overlay made the modal disappear after600ms; the confirm locator then timed out. This is not established as an ordinary user-click defect. Settled600ms cancel/reopen/confirm and double-click deletion pass. Never use original conversations for this check."
+  ],
+  "critical_code_review_comments": [
+    "useAdvisorChat.js lines27-56 rerun the initialization effect when historyRevision increments. Lines32-36 restore initialState/input=initialQuestion and erase current messages/conversationId; line42 skips conversation loading whenever the captured initialQuestion is nonempty. This directly explains the reproduced incoming-question retry regression.",
+    "The alert error/reload wiring, selected-history target retry, local spreadsheet loading/error/retry, answerComplete protection, and deletion exact-target/busy guard passed their requested tests. No implementation files were modified.",
+    "Build emits a Node fs.F_OK deprecation; pytest emits dependency deprecations. Browser startup logs include transient Recharts negative-size warnings and canceled navigation requests, not observed layout failures or real API500s."
+  ],
+  "updated_files": [
+    "/app/backend/tests/quality_iteration4_snapshot.py",
+    "/app/test_reports/iteration_4.json",
+    "/app/test_reports/iteration4-db-baseline.json",
+    "/app/test_reports/pytest/quality-iteration4.xml",
+    "/app/test_reports/quality-iteration4.log",
+    "/app/test_reports/quality-hooks-iteration4.log",
+    "/app/test_reports/quality-build-iteration4.log",
+    "/app/test_reports/quality-db-iteration4.log"
+  ],
+  "success_rate": {"backend": "100% (32/32)", "frontend": "91.7% (11/12 evaluated core scenarios; optional forced pre-animation reopen inconclusive)"},
+  "test_credentials": "No login/authentication tested; public preview URL read from frontend/.env. No credentials or secrets printed.",
+  "seed_data_creation": "No seed/reset/migration or real import. Pytest created and soft-deleted only its own TEST_quality conversation. Browser created exactly two TEST_ conversations:79ca7514-eb18-406f-bbe8-1dc2e066b998 (exact-ID API cleanup after rapid-reopen timing failure) and977d87fe-7561-4cb2-a0df-931c67f996a4 (real UI soft-delete). DB verification confirms both are is_deleted=true with both messages preserved. All records in every collection present in the pre-UI snapshot remain hash-identical; original financial snapshot from iteration_3 also passes. Existing receipts/transactions/imports/diagnostics/acknowledgements/conversations were not modified.",
+  "retest_needed": true,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Iteration_3 HIGH alerts503 spinner is fixed: alerts-load-error/retry shown and real retry restores matching total/critical/unread values with zero API writes and unchanged acknowledgments. MEDIUM initial-list503 and selected-conversation503 retry now issue fresh GETs without POST; selected target B loads even after an earlier failed question. LOW spreadsheet delayed history now has local role=status; page stays usable and503 retry restores real imports. Draft survives initial query removal. Post-done list503 keeps answer complete and retry works for a direct composer question. The combined incoming ?pergunta variant fails as described above. Real settled UI deletion gap is closed; optional forced immediate reopen is inconclusive. MOCKED TEST ONLY routes were used for failure/SSE state injection, never production data changes; real Gemini and delete integrations were independently tested without mocks. Early telemetry-count and Python global-scope harness failures were corrected and excluded from feature failure rate. Do not run destructive legacy suites. Production deployment was not tested.",
+  "rca of the issue": "Confirmed frontend state-reset regression, not backend or SSE persistence: retry() increments historyRevision, causing the initialization effect to clear messages and replay the captured incoming draft. Its !initialQuestion condition then suppresses loading the completed conversation, although list recovery succeeds. Reproduction uses only MOCKED TEST ONLY conversations/SSE, reports one POST, zero messages and restored sent draft after retry. Fix requires a history-specific reload preserving active chat state rather than reinitializing the hook. Rapid forced cancel/reopen failure is separately timing-sensitive: the locator initially sees the closing modal, but it is gone after600ms; likely Radix closing-overlay/outside-dismiss timing, not proven without forced clicks. No false API deletion or original-data mutation occurred."
+}

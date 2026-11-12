@@ -1,13 +1,34 @@
-import { useState } from 'react';
-import { Link } from 'react-router-dom';
-import { ShieldAlert,BellRing,CheckCheck,ChevronDown,ChevronUp,ArrowUpRight,MessageSquareText,Check,Activity,RotateCcw } from 'lucide-react';
-import { Button } from '../components/ui/button';
-import { api,errorText } from '../lib/api';
-import { Empty } from '../components/finance/Shared';
+import { useMemo, useState } from 'react';
+import { Activity, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
-export default function Alerts({month,feed,onUpdated}){
- const [filter,setFilter]=useState('todos'),[rules,setRules]=useState(false),[busy,setBusy]=useState(null);
- const acknowledge=async alert=>{setBusy(alert.id);try{await api.put(`/alerts/${alert.id}/acknowledge`,{month,acknowledged:!alert.acknowledged});onUpdated();toast.success(alert.acknowledged?'Alerta marcado como não lido.':'Alerta marcado como visto.');}catch(e){toast.error(errorText(e))}finally{setBusy(null)}};
- const items=(feed?.alerts||[]).filter(a=>filter==='todos'||(filter==='criticos'?a.severity==='critico':!a.acknowledged));
- return <><div className="alert-summary-grid"><div><span><Activity size={17}/> Monitoramento do período</span><strong data-testid="alert-total-count">{feed?.count||0}<small> alertas ativos</small></strong></div><div><span><ShieldAlert size={17}/> Prioridade alta</span><strong className={(feed?.critical_count||0)>0?'red':'muted'} data-testid="alert-critical-count">{feed?.critical_count||0}<small> pontos críticos</small></strong></div><div><span><BellRing size={17}/> Aguardando seu olhar</span><strong className="gold" data-testid="alert-unread-count">{feed?.unread_count||0}<small> não lidos</small></strong></div></div><div className="filter-bar"><div className="segmented"><button onClick={()=>setFilter('todos')} className={filter==='todos'?'active':''} data-testid="alerts-filter-all">Todos</button><button onClick={()=>setFilter('criticos')} className={filter==='criticos'?'active':''} data-testid="alerts-filter-critical">Prioridade alta</button><button onClick={()=>setFilter('nao-lidos')} className={filter==='nao-lidos'?'active':''} data-testid="alerts-filter-unread">Não lidos</button></div><button className="text-link" onClick={()=>setRules(!rules)} data-testid="alert-rules-toggle">Critérios do monitoramento {rules?<ChevronUp size={14}/>:<ChevronDown size={14}/>}</button></div>{rules&&<div className="alert-rules" data-testid="alert-rules"><div className="rules-intro"><ShieldAlert size={18}/><p>Alertas calculados com os dados confirmados. Os critérios são gerenciais e não substituem um orçamento ou avaliação contábil.</p></div>{feed?.rules.map(rule=><div key={rule.id} data-testid={`alert-rule-${rule.id}`}><h3>{rule.name}</h3><p>{rule.criterion}</p></div>)}</div>}<div className="alerts-list">{items.map(a=><article className={`financial-alert ${a.severity} ${a.acknowledged?'acknowledged':''}`} key={a.id} id={a.id} data-testid={`financial-alert-${a.id}`}><div className="financial-alert-icon"><ShieldAlert size={21}/></div><div className="financial-alert-main"><div className="financial-alert-top"><span className="alert-severity"><i/>{a.severity==='critico'?'PRIORIDADE ALTA':'ACOMPANHAMENTO'}</span>{a.acknowledged&&<span className="alert-seen" data-testid={`alert-seen-${a.id}`}><CheckCheck size={12}/>Visto</span>}<strong data-testid={`alert-metric-${a.id}`}>{a.metric}</strong></div><h2 data-testid={`alert-title-${a.id}`}>{a.title}</h2><p className="alert-description" data-testid={`alert-description-${a.id}`}>{a.description}</p><div className="alert-recommendation"><span>PRÓXIMO PASSO</span><p data-testid={`alert-action-${a.id}`}>{a.action}</p></div><div className="financial-alert-actions"><Link to={`/consultor?pergunta=${encodeURIComponent(`Analise este ponto de atenção de ${month}: ${a.title}. ${a.description} Que ações devo priorizar?`)}`} data-testid={`alert-ask-advisor-${a.id}`} className="ask-advisor-link"><MessageSquareText size={14}/>Analisar com o consultor <ArrowUpRight size={13}/></Link><Button variant="ghost" disabled={busy===a.id} data-testid={`alert-acknowledge-${a.id}`} onClick={()=>acknowledge(a)}>{a.acknowledged?<RotateCcw size={13}/>:<Check size={13}/>} {a.acknowledged?'Marcar não lido':'Marcar como visto'}</Button></div></div></article>)}</div>{!items.length&&<Empty title={filter==='criticos'?'Nenhum alerta crítico':filter==='nao-lidos'?'Tudo acompanhado por aqui':'Nenhum alerta neste período'} text={feed?.has_data?'Nenhum ponto corresponde a este filtro nos critérios atuais.':'Não há dados financeiros suficientes para avaliar este mês.'}/>}<p className="alert-update-note" data-testid="alerts-update-note"><Activity size={12}/> Atualizado com os lançamentos confirmados{feed?.updated_at?` · ${new Date(feed.updated_at).toLocaleString('pt-BR')}`:''}</p></>
+import { api, errorText } from '../lib/api';
+import { Empty, Loading } from '../components/finance/Shared';
+import { AlertCard } from '../components/finance/alerts/AlertCard';
+import { AlertRules, AlertSummary } from '../components/finance/alerts/AlertSummary';
+import { Button } from '../components/ui/button';
+
+const FILTERS = { todos: () => true, criticos: alert => alert.severity === 'critico', 'nao-lidos': alert => !alert.acknowledged };
+const EMPTY_TITLES = { todos: 'Nenhum alerta neste período', criticos: 'Nenhum alerta crítico', 'nao-lidos': 'Tudo acompanhado por aqui' };
+export default function Alerts({ month, feed, error, onRetry, onUpdated }) {
+  const [filter, setFilter] = useState('todos');
+  const [showRules, setShowRules] = useState(false);
+  const [busy, setBusy] = useState(null);
+  const items = useMemo(() => (feed?.alerts || []).filter(FILTERS[filter]), [feed, filter]);
+  const acknowledge = async alert => {
+    if (busy) return;
+    setBusy(alert.id);
+    try { await api.put(`/alerts/${alert.id}/acknowledge`, { month, acknowledged: !alert.acknowledged }); onUpdated(); toast.success(alert.acknowledged ? 'Alerta marcado como não lido.' : 'Alerta marcado como visto.'); }
+    catch (error) { toast.error(errorText(error)); }
+    finally { setBusy(null); }
+  };
+  if (error) return <div data-testid="alerts-load-error" role="alert"><Empty title="Não foi possível carregar os alertas" text={errorText(error)}><Button onClick={onRetry} data-testid="alerts-retry">Tentar novamente</Button></Empty></div>;
+  if (!feed) return <Loading/>;
+  return <>
+    <AlertSummary feed={feed}/>
+    <div className="filter-bar"><div className="segmented"><button onClick={() => setFilter('todos')} className={filter === 'todos' ? 'active' : ''} data-testid="alerts-filter-all">Todos</button><button onClick={() => setFilter('criticos')} className={filter === 'criticos' ? 'active' : ''} data-testid="alerts-filter-critical">Prioridade alta</button><button onClick={() => setFilter('nao-lidos')} className={filter === 'nao-lidos' ? 'active' : ''} data-testid="alerts-filter-unread">Não lidos</button></div><button className="text-link" onClick={() => setShowRules(value => !value)} data-testid="alert-rules-toggle">Critérios do monitoramento {showRules ? <ChevronUp size={14}/> : <ChevronDown size={14}/>}</button></div>
+    {showRules && <AlertRules rules={feed.rules}/>}
+    <div className="alerts-list">{items.map(alert => <AlertCard key={alert.id} alert={alert} month={month} busy={Boolean(busy)} onAcknowledge={acknowledge}/>)}</div>
+    {!items.length && <Empty title={EMPTY_TITLES[filter]} text={feed.has_data ? 'Nenhum ponto corresponde a este filtro nos critérios atuais.' : 'Não há dados financeiros suficientes para avaliar este mês.'}/>}
+    <p className="alert-update-note" data-testid="alerts-update-note"><Activity size={12}/> Atualizado com os lançamentos confirmados · {new Date(feed.updated_at).toLocaleString('pt-BR')}</p>
+  </>;
 }

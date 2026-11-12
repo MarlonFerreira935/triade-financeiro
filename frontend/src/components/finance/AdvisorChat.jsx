@@ -1,56 +1,43 @@
-import { useState,useEffect,useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import ReactMarkdown from 'react-markdown';
-import { Send,Plus,History,Trash2,ArrowUpRight,TrendingUp,ShieldCheck,ChartNoAxesCombined,Wallet,Loader2,Check,RotateCcw,ChevronDown } from 'lucide-react';
-import { Button } from '../ui/button';
-import { Dialog,DialogContent,DialogTitle,DialogDescription } from '../ui/dialog';
-import { api,API,money,monthLabel,errorText } from '../../lib/api';
 import { toast } from 'sonner';
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '../ui/dialog';
+import { Button } from '../ui/button';
+import { errorText } from '../../lib/api';
+import { useAdvisorChat } from '../../hooks/useAdvisorChat';
+import { ChatHeader } from './advisor/ChatHeader';
+import { ChatMessages } from './advisor/ChatMessages';
+import { ChatInput } from './advisor/ChatInput';
 
-const suggestions=[
- {icon:ChartNoAxesCombined,label:'Como está a saúde do negócio?',prompt:'Faça uma análise da saúde financeira do negócio neste período. O que exige minha atenção primeiro?'},
- {icon:TrendingUp,label:'Onde posso melhorar a margem?',prompt:'Quais são as melhores oportunidades para aumentar a margem, considerando nossos custos reais?'},
- {icon:Wallet,label:'As retiradas estão sustentáveis?',prompt:'As retiradas dos sócios estão sustentáveis neste mês? Analise os valores reais e recomende um limite responsável.'},
- {icon:ShieldCheck,label:'O que mudou no último mês?',prompt:'Compare este período com o mês anterior: o que melhorou, o que piorou e quais ações você recomenda?'}
-];
-
-export const AdvisorChat=({month,totals,onUpdated})=>{
- const [params,setParams]=useSearchParams();
- const [conversations,setConversations]=useState([]),[conversationId,setConversationId]=useState(null),[messages,setMessages]=useState([]),[input,setInput]=useState(''),[busy,setBusy]=useState(false),[historyOpen,setHistoryOpen]=useState(false),[deleting,setDeleting]=useState(null),[loading,setLoading]=useState(true),[failure,setFailure]=useState(''),[snapshot,setSnapshot]=useState(null);
- const controller=useRef(null),scroll=useRef(null),textarea=useRef(null),activeMonth=useRef(month),lastQuestion=useRef('');
- const loadConversations=async()=>{const {data}=await api.get('/advisor/conversations',{params:{month}});setConversations(data);return data};
- useEffect(()=>{
-  activeMonth.current=month;let active=true;setLoading(true);setMessages([]);setConversationId(null);setSnapshot(null);setBusy(false);setFailure('');
-  api.get('/advisor/conversations',{params:{month}}).then(async r=>{if(!active)return;setConversations(r.data);if(r.data.length&&!params.get('pergunta')){const {data}=await api.get(`/advisor/conversations/${r.data[0].id}`);if(active){setConversationId(data.id);setMessages(data.messages);}}}).catch(e=>toast.error(errorText(e))).finally(()=>{if(active)setLoading(false)});
-  return()=>{active=false;controller.current?.abort()};
-  // The history belongs to its selected financial period, not to the draft question.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
- },[month]);
- useEffect(()=>{const question=params.get('pergunta');if(question){setInput(question);setParams({}, {replace:true});textarea.current?.focus();}},[params,setParams]);
- useEffect(()=>{if(scroll.current)scroll.current.scrollTo({top:scroll.current.scrollHeight,behavior:'smooth'});},[messages,busy]);
- const selectConversation=async id=>{if(busy)return;setLoading(true);setHistoryOpen(false);try{const {data}=await api.get(`/advisor/conversations/${id}`);setConversationId(data.id);setMessages(data.messages);setSnapshot(null);setFailure('');}catch(e){toast.error(errorText(e))}finally{setLoading(false)}};
- const newConversation=()=>{if(busy)return;setConversationId(null);setMessages([]);setInput('');setFailure('');setSnapshot(null);setHistoryOpen(false);textarea.current?.focus()};
- const deleteConversation=async()=>{try{await api.delete(`/advisor/conversations/${deleting.id}`);if(conversationId===deleting.id)newConversation();await loadConversations();setDeleting(null);toast.success('Conversa excluída.');}catch(e){toast.error(errorText(e))}};
- const send=async(question=input)=>{
-  const text=question.trim();if(!text||busy||loading)return;
-  const requestMonth=month;controller.current=new AbortController();setBusy(true);setFailure('');setInput('');setHistoryOpen(false);lastQuestion.current=text;
-  const uid=`user-${Date.now()}`,aid=`assistant-${Date.now()}`;
-  setMessages(prev=>[...prev,{id:uid,role:'user',content:text,status:'complete'},{id:aid,role:'assistant',content:'',status:'streaming'}]);
-  let finished=false;
-  try{
-   const response=await fetch(`${API}/advisor/chat`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({message:text,month,conversation_id:conversationId}),signal:controller.current.signal});
-   if(!response.ok){const data=await response.json();throw new Error(typeof data.detail==='string'?data.detail:'Não foi possível enviar a pergunta.');}
-   const reader=response.body.getReader(),decoder=new TextDecoder();let buffer='';
-   while(true){const {done,value}=await reader.read();if(done)break;buffer+=decoder.decode(value,{stream:true});const events=buffer.split('\n\n');buffer=events.pop();for(const raw of events){if(!raw.startsWith('data: '))continue;const event=JSON.parse(raw.slice(6));if(activeMonth.current!==requestMonth)return;
-    if(event.type==='meta'){setConversationId(event.conversation_id);setSnapshot(event);}
-    if(event.type==='delta')setMessages(prev=>prev.map(m=>m.id===aid?{...m,content:m.content+event.text}:m));
-    if(event.type==='error')throw new Error(event.message);
-    if(event.type==='done'){finished=true;setMessages(prev=>prev.map(m=>m.id===aid?{...m,status:'complete',id:event.assistant_id}:m));}
-   }}
-   if(!finished)throw new Error('A conexão foi interrompida antes de concluir a resposta.');
-   await loadConversations();onUpdated?.();
-  }catch(e){if(e.name!=='AbortError'&&activeMonth.current===requestMonth){setFailure(e.message);setMessages(prev=>prev.map(m=>m.id===aid?{...m,status:'failed'}:m));}}
-  finally{if(activeMonth.current===requestMonth)setBusy(false);}
- };
- return <section className="advisor-chat" data-testid="advisor-chat"><header className="advisor-chat-header"><div className="advisor-identity"><span className="advisor-avatar"><img src="/brand/symbol.png" alt="Tríade"/></span><div><strong data-testid="advisor-name">Consultor Tríade</strong><span><i className="online-dot"/> Inteligência a serviço do seu negócio</span></div></div><div className="chat-tools"><div className="chat-history-control"><Button variant="ghost" size="icon" title="Histórico de conversas" data-testid="advisor-history-toggle" disabled={busy} onClick={()=>setHistoryOpen(!historyOpen)}><History size={17}/></Button>{historyOpen&&<div className="chat-history-popover" data-testid="advisor-history"><div className="history-popover-heading">Conversas · {monthLabel(month)}</div>{conversations.length?conversations.map(c=><div key={c.id} className="chat-history-row"><button className={conversationId===c.id?'active':''} data-testid={`conversation-select-${c.id}`} onClick={()=>selectConversation(c.id)}>{c.title}<span>{new Date(c.updated_at).toLocaleDateString('pt-BR')}</span></button><button className="icon-button" title="Excluir conversa" data-testid={`conversation-delete-${c.id}`} onClick={()=>setDeleting(c)}><Trash2 size={13}/></button></div>):<p data-testid="advisor-no-history">Nenhuma conversa neste período.</p>}</div>}</div><Button variant="outline" className="new-chat" data-testid="advisor-new-chat" disabled={busy} onClick={newConversation}><Plus size={14}/><span>Nova conversa</span></Button></div></header><div className="chat-period"><span className="gold-tag">BASE REAL</span><span data-testid="advisor-period">{monthLabel(month)}</span><span className="chat-records" data-testid="advisor-records">{totals.count} registros na DRE</span></div><div className="chat-scroll" ref={scroll} data-testid="advisor-message-list">{loading?<div className="chat-loading"><Loader2 className="spin" size={20}/><span>Carregando conversas...</span></div>:!messages.length?<div className="advisor-welcome"><div className="advisor-welcome-symbol"><img src="/brand/symbol.png" alt="Marca Tríade"/></div><span className="eyebrow">SEU NEGÓCIO. UMA VISÃO MAIS CLARA.</span><h2 data-testid="advisor-welcome-title">Vamos olhar para<br/>os seus números?</h2><p data-testid="advisor-welcome-subtitle">Decisões melhores começam com as perguntas certas.</p><div className="advisor-mini-kpis"><div><span>Lucro líquido</span><strong data-testid="advisor-profit">{money(totals.profit)}</strong></div><div><span>Margem líquida</span><strong className="green" data-testid="advisor-margin">{totals.margin.toFixed(1).replace('.',',')}%</strong></div><div><span>Caixa livre gerado</span><strong data-testid="advisor-cash">{money(totals.free_cash)}</strong></div></div><div className="advisor-prompts">{suggestions.map((s,i)=><button key={i} onClick={()=>send(s.prompt)} data-testid={`advisor-suggestion-${i}`}><s.icon size={16}/><span>{s.label}</span><ArrowUpRight size={14}/></button>)}</div></div>:<div className="chat-messages">{messages.map((m,i)=><article className={`chat-message ${m.role}`} key={m.id} data-testid={`chat-message-${i}`}><div className="message-person">{m.role==='assistant'?<img src="/brand/symbol.png" alt="Tríade"/>:<span>TP</span>}</div><div className="message-content"><div className="message-byline"><strong>{m.role==='assistant'?'Consultor Tríade':'Você'}</strong>{m.role==='assistant'&&<span>IA FINANCEIRA</span>}</div>{m.role==='assistant'?<div className="message-markdown" data-testid={`assistant-content-${i}`}>{m.content?<ReactMarkdown allowedElements={['p','strong','em','ul','ol','li','h1','h2','h3','h4','blockquote','code','br','hr']} unwrapDisallowed>{m.content}</ReactMarkdown>:m.status==='streaming'?<span className="thinking"><i/><i/><i/>Analisando seus dados</span>:<span className="muted">A resposta não foi concluída.</span>}{m.status==='streaming'&&m.content&&<span className="typing-cursor"/>}</div>:<p className="user-message-text">{m.content}</p>}{m.role==='assistant'&&m.status==='complete'&&<div className="answer-source" data-testid={`answer-source-${i}`}><Check size={11}/> DRE e lançamentos · {monthLabel(m.month||month)}{m.data_as_of&&<span> · {new Date(m.data_as_of).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}</span>}</div>}{m.role==='assistant'&&['failed','interrupted'].includes(m.status)&&<span className="answer-incomplete" data-testid={`answer-incomplete-${i}`}>Resposta incompleta · não utilize como análise concluída</span>}</div></article>)}</div>}</div>{failure&&<div className="chat-failure" role="alert" data-testid="advisor-error"><p>{failure}</p><Button variant="ghost" disabled={busy} onClick={()=>send(lastQuestion.current)} data-testid="advisor-retry"><RotateCcw size={13}/>Tentar novamente</Button></div>}<div className="chat-composer-wrap"><form className="chat-composer" onSubmit={e=>{e.preventDefault();send()}}><textarea ref={textarea} rows={2} value={input} onChange={e=>setInput(e.target.value)} disabled={busy||loading} maxLength={4000} aria-label="Pergunta ao consultor financeiro" placeholder="O que você gostaria de entender sobre seu financeiro?" data-testid="advisor-message-input" onKeyDown={e=>{if(e.key==='Enter'&&!e.shiftKey&&!e.nativeEvent.isComposing){e.preventDefault();send()}}}/><div className="composer-bottom"><span><ShieldCheck size={12}/>{snapshot?`Dados consultados às ${new Date(snapshot.updated_at).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}`:'Dados atualizados a cada pergunta'}</span><button type="submit" title="Enviar pergunta" aria-label="Enviar pergunta" disabled={busy||loading||!input.trim()} data-testid="advisor-send">{busy?<Loader2 className="spin" size={16}/>:<Send size={16}/>}</button></div></form><p className="advisor-disclaimer" data-testid="advisor-disclaimer">Análise gerencial de apoio. Nenhum lançamento é alterado pelo consultor.</p></div><Dialog open={!!deleting} onOpenChange={v=>!v&&setDeleting(null)}><DialogContent className="finance-modal" data-testid="delete-conversation-modal"><DialogTitle>Excluir esta conversa?</DialogTitle><DialogDescription>As mensagens serão removidas do histórico. Seus dados financeiros não serão alterados.</DialogDescription><div className="modal-footer"><Button variant="outline" onClick={()=>setDeleting(null)} data-testid="delete-conversation-cancel">Cancelar</Button><Button variant="destructive" onClick={deleteConversation} data-testid="delete-conversation-confirm">Excluir conversa</Button></div></DialogContent></Dialog></section>
+export const AdvisorChat = ({ month, totals, onUpdated }) => {
+  const [params, setParams] = useSearchParams();
+  const question = params.get('pergunta') || '';
+  // Capture the incoming draft once; clearing the URL must not reset an active conversation.
+  const [initialQuestion] = useState(question);
+  const chat = useAdvisorChat(month, initialQuestion, onUpdated);
+  const [deleting, setDeleting] = useState(null);
+  const [deleteBusy, setDeleteBusy] = useState(false);
+  const textarea = useRef(null);
+  const { setInput } = chat;
+  useEffect(() => {
+    if (!question) return;
+    setInput(question);
+    setParams(previous => { const next = new URLSearchParams(previous); next.delete('pergunta'); return next; }, { replace: true });
+    textarea.current?.focus();
+  }, [question, setInput, setParams]);
+  const remove = async () => {
+    if (!deleting || deleteBusy) return;
+    const id = deleting.id;
+    setDeleteBusy(true);
+    try { await chat.deleteConversation(id); setDeleting(current => current?.id === id ? null : current); }
+    catch (error) { toast.error(errorText(error)); }
+    finally { setDeleteBusy(false); }
+  };
+  const newConversation = () => { chat.newConversation(); textarea.current?.focus(); };
+  return <section className="advisor-chat" data-testid="advisor-chat">
+    <ChatHeader chat={chat} month={month} totals={totals} onDelete={setDeleting} onNew={newConversation}/>
+    <ChatMessages chat={chat} month={month} totals={totals}/>
+    <ChatInput chat={chat} textareaRef={textarea}/>
+    <Dialog open={Boolean(deleting)} onOpenChange={open => { if (!open && !deleteBusy) setDeleting(null); }}><DialogContent className="finance-modal" data-testid="delete-conversation-modal"><DialogTitle>Excluir esta conversa?</DialogTitle><DialogDescription>As mensagens serão removidas do histórico. Seus dados financeiros não serão alterados.</DialogDescription><div className="modal-footer"><Button variant="outline" disabled={deleteBusy} onClick={() => setDeleting(null)} data-testid="delete-conversation-cancel">Cancelar</Button><Button variant="destructive" disabled={deleteBusy} onClick={remove} data-testid="delete-conversation-confirm">{deleteBusy ? 'Excluindo...' : 'Excluir conversa'}</Button></div></DialogContent></Dialog>
+  </section>;
 };

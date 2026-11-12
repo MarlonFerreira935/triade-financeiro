@@ -1,7 +1,7 @@
 import { useState,useEffect,useCallback } from 'react';
 import { BrowserRouter,Routes,Route } from 'react-router-dom';
-import { Toaster,toast } from 'sonner';
-import { api,errorText } from './lib/api';
+import { Toaster } from 'sonner';
+import { useApiResource } from './hooks/useApiResource';
 import { Layout } from './components/finance/Layout';
 import { TransactionModal } from './components/finance/TransactionModal';
 import { Loading } from './components/finance/Shared';
@@ -22,29 +22,22 @@ import './mobile-finance.css';
 import './advisor-refinements.css';
 
 function Workspace(){
- const [meta,setMeta]=useState(null),[month,setMonth]=useState(''),[data,setData]=useState(null);
+ const [month,setMonth]=useState('');
  const [version,setVersion]=useState(0),[modal,setModal]=useState(false),[initial,setInitial]=useState(null);
- const [error,setError]=useState(false),[alerts,setAlerts]=useState(null),[dataError,setDataError]=useState(false);
  const refresh=useCallback(()=>setVersion(v=>v+1),[]);
- useEffect(()=>{
-  let active=true;
-  api.get('/meta').then(r=>{if(active){setMeta(r.data);setMonth(m=>m||r.data.default_month);setError(false)}}).catch(e=>{if(active){setError(true);toast.error(errorText(e))}});
-  return()=>{active=false};
- },[version]);
- useEffect(()=>{
-  if(!month)return;let active=true;setDataError(false);
-  api.get('/dashboard',{params:{month}}).then(r=>{if(active)setData(r.data)}).catch(e=>{if(active){setDataError(true);toast.error(errorText(e))}});
-  api.get('/alerts',{params:{month}}).then(r=>{if(active)setAlerts(r.data)}).catch(e=>{if(active)toast.error(errorText(e))});
-  return()=>{active=false};
- },[month,version]);
+ const metadata=useApiResource('/meta',null,version);
+ const dashboard=useApiResource(month?'/dashboard':null,{month},version);
+ const alertResource=useApiResource(month?'/alerts':null,{month},version);
+ const meta=metadata.data, data=dashboard.data, alerts=alertResource.data;
+ useEffect(()=>{if(meta)setMonth(current=>current||meta.default_month);},[meta]);
  const open=record=>{setInitial(record||null);setModal(true)};
- if((error&&!meta)||(dataError&&!data))return <div className="initial-error" data-testid="initial-error"><h1>Não foi possível abrir seu financeiro.</h1><Button onClick={refresh} data-testid="retry-app">Tentar novamente</Button></div>;
+ if((metadata.error&&!meta)||(dashboard.error&&!data))return <div className="initial-error" data-testid="initial-error"><h1>Não foi possível abrir seu financeiro.</h1><Button onClick={refresh} data-testid="retry-app">Tentar novamente</Button></div>;
  if(!meta||!data)return <Loading/>;
  const props={month,version,onChanged:refresh,accounts:meta.accounts};
  const currentAlerts=alerts?.month===month?alerts:null;
  return <>
   <Layout month={month} setMonth={setMonth} meta={meta} onNew={open} alerts={currentAlerts}>
-   {data.month!==month?(dataError?<div className="empty" data-testid="period-error"><p>Não foi possível carregar este período.</p><Button onClick={refresh} data-testid="retry-period">Tentar novamente</Button></div>:<Loading/>):<Routes>
+   {data.month!==month?<Loading/>:<Routes>
     <Route path="/" element={<><OverviewAlerts alerts={currentAlerts}/><Overview data={data}/></>}/>
     <Route path="/lancamentos" element={<Transactions {...props} onEdit={open}/>}/>
     <Route path="/dre" element={<Dre {...props}/>}/>
@@ -53,7 +46,7 @@ function Workspace(){
     <Route path="/planilhas" element={<Spreadsheets {...props}/>}/>
     <Route path="/whatsapp" element={<Whatsapp/>}/>
     <Route path="/consultor" element={<Advisor data={data} month={month} alerts={currentAlerts} onUpdated={refresh}/>}/>
-    <Route path="/alertas" element={<Alerts month={month} feed={currentAlerts} onUpdated={refresh}/>}/>
+    <Route path="/alertas" element={<Alerts month={month} feed={currentAlerts} error={alertResource.error} onRetry={alertResource.reload} onUpdated={refresh}/>}/>
     <Route path="*" element={<Overview data={data} alerts={currentAlerts}/>}/>
    </Routes>}
   </Layout>

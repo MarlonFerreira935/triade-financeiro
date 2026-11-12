@@ -3,29 +3,23 @@ from pathlib import Path
 from calendar import monthrange
 from datetime import datetime, timezone
 from decimal import Decimal
-import hashlib
+from bisect import bisect_left
 import io
 import openpyxl
-from openpyxl.styles import Font, PatternFill
+from workbook_export import WorkbookExporter
 
 TEMPLATE = Path(__file__).parent / 'assets' / 'triade_original.xlsx'
 ACCOUNT_ROWS = [4,5,6,8,9,10,14,15,16,17,19,20,21,23,24,26,27,29,30,31,36,37,38,40,41,42,43,44,45,47,48,49,50,52,53,54,56,57,61,62,65,66,70,71,72]
 MONTHS = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez']
 
+GROUP_LIMITS = (6, 10, 21, 27, 31, 38, 45, 50, 54, 57, 62, 66)
+GROUP_NAMES = ('Receitas', 'Impostos e deduções', 'Matéria-prima e insumos',
+               'Logística e montagem', 'Comissões', 'Pessoal', 'Ocupação e infraestrutura',
+               'Administrativo e TI', 'Marketing', 'Frota e mobilidade',
+               'Depreciação e provisões', 'Resultado financeiro', 'Sócios e investimentos')
+
 def group_for(row):
-    if row <= 6: return 'Receitas'
-    if row <= 10: return 'Impostos e deduções'
-    if row <= 21: return 'Matéria-prima e insumos'
-    if row <= 27: return 'Logística e montagem'
-    if row <= 31: return 'Comissões'
-    if row <= 38: return 'Pessoal'
-    if row <= 45: return 'Ocupação e infraestrutura'
-    if row <= 50: return 'Administrativo e TI'
-    if row <= 54: return 'Marketing'
-    if row <= 57: return 'Frota e mobilidade'
-    if row <= 62: return 'Depreciação e provisões'
-    if row <= 66: return 'Resultado financeiro'
-    return 'Sócios e investimentos'
+    return GROUP_NAMES[bisect_left(GROUP_LIMITS, row)]
 
 _book = openpyxl.load_workbook(TEMPLATE, data_only=True)
 ACCOUNTS = [{'id': str(r), 'name': _book['DRE Gerencial'].cell(r,1).value,
@@ -87,29 +81,13 @@ def totals(records):
 
 def diagnostics(t):
     if not t['count']:
-        return [{'level':'info','title':'Sem movimentos no período','text':'Os indicadores serão calculados a partir dos lançamentos deste mês.'}]
+        return [{'id':'no-data','level':'info','title':'Sem movimentos no período','text':'Os indicadores serão calculados a partir dos lançamentos deste mês.'}]
     return [
-        {'level':'success' if t['profit'] > 0 else 'warning', 'title':'Operação lucrativa' if t['profit'] > 0 else 'Resultado exige atenção',
+        {'id':'profit-margin','level':'success' if t['profit'] > 0 else 'warning', 'title':'Operação lucrativa' if t['profit'] > 0 else 'Resultado exige atenção',
          'text': f"Margem líquida de {t['margin']:.1f}% sobre a receita líquida.".replace('.',',',1)},
-        {'level':'warning' if t['revenue'] and t['withdrawals']/t['revenue'] > .15 else 'success', 'title':'Retiradas dos sócios',
+        {'id':'owner-withdrawals','level':'warning' if t['revenue'] and t['withdrawals']/t['revenue'] > .15 else 'success', 'title':'Retiradas dos sócios',
          'text': f"Representam {t['withdrawals']/t['revenue']*100 if t['revenue'] else 0:.1f}% da receita bruta. Referência da planilha: até 15%.".replace('.',',',1)},
-        {'level':'info','title':'Acompanhe os custos diretos','text':f"Custos variáveis comprometem {t['variable']/t['net_revenue']*100 if t['net_revenue'] else 0:.1f}% da receita líquida.".replace('.',',',1)}]
+        {'id':'direct-costs','level':'info','title':'Acompanhe os custos diretos','text':f"Custos variáveis comprometem {t['variable']/t['net_revenue']*100 if t['net_revenue'] else 0:.1f}% da receita líquida.".replace('.',',',1)}]
 
 def export_workbook(records,year):
-    wb = openpyxl.load_workbook(TEMPLATE)
-    sheet = wb['DRE Gerencial']
-    for m in range(1,13):
-        t = totals([r for r in records if r['date'].startswith(f'{year}-{m:02}')])
-        for r in ACCOUNT_ROWS: sheet.cell(r,m+1,t['accounts'][str(r)])
-    if 'Lançamentos do Sistema' in wb.sheetnames: del wb['Lançamentos do Sistema']
-    ledger = wb.create_sheet('Lançamentos do Sistema')
-    ledger.append(['Data','Descrição','Tipo','Categoria','Conta DRE','Valor','Origem','Comprovante','Observação'])
-    for t in records:
-        values = [t['date'],t['description'],t['type'],t['category'],ACCOUNT_MAP[t['account_id']]['name'],t['amount'],t['source'],t.get('receipt_id') or '',t.get('note') or '']
-        ledger.append([("'"+v if isinstance(v,str) and v.startswith(('=','+','-','@')) else v) for v in values])
-    for cell in ledger[1]: cell.font=Font(bold=True,color='D9A33E');cell.fill=PatternFill('solid',fgColor='121418')
-    for col in ['A','C','F','G']: ledger.column_dimensions[col].width=20
-    for col in ['B','D','E','H','I']: ledger.column_dimensions[col].width=48
-    ledger.freeze_panes='A2'
-    wb.calculation.fullCalcOnLoad = True
-    result=io.BytesIO();wb.save(result);return result.getvalue()
+    return WorkbookExporter(TEMPLATE, ACCOUNT_ROWS, ACCOUNT_MAP, totals).export(records, year)
